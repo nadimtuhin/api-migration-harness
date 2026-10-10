@@ -1,0 +1,30 @@
+{
+  "name": "api-migration-harness",
+  "version": "0.1.0",
+  "description": "Production-grade, zero-dependency CLI harness for dual-running legacy vs modern APIs, verifying payload parity, deep JSON diffing, and checking write idempotency.",
+  "type": "module",
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "bin": {
+    "api-migration-harness": "./src/cli.ts"
+  },
+  "scripts": {
+    "test": "bun test",
+    "mock": "bun run mock/server.ts",
+    "cli": "bun run src/cli.ts"
+  },
+  "keywords": [
+    "api-migration",
+    "dual-run",
+    "shadow-traffic",
+    "idempotency",
+    "json-diff",
+    "bun",
+    "typescript"
+  ],
+  "author": "Nadim Tuhin",
+  "license": "MIT",
+  "devDependencies": {
+    "@types/bun": "latest"
+  }
+}
