@@ -163,4 +163,42 @@ describe("CLI Process Interface (e2e)", () => {
     expect(exitCode).toBe(1);
     expect(stdout).toContain("DOUBLE-WRITE DETECTED");
   });
+  it("rejects a non-numeric --tolerance instead of silently hiding numeric drift", async () => {
+    const { exitCode, stderr } = await runCliProc([
+      "diff",
+      "-a",
+      '{"x":1}',
+      "-b",
+      '{"x":5}',
+      "--tolerance",
+      "abc",
+    ]);
+    expect(exitCode).toBe(2);
+    expect(stderr).toContain("--tolerance");
+  });
+
+  it("rejects a non-numeric --repeat with a usage error instead of crashing", async () => {
+    const { exitCode, stderr } = await runCliProc([
+      "idempotent",
+      "--url",
+      `${baseUrl}/v2/deals`,
+      "--repeat",
+      "abc",
+    ]);
+    expect(exitCode).toBe(2);
+    expect(stderr).toContain("--repeat");
+  });
+
+  it("rejects a zero or negative --timeout", async () => {
+    const { exitCode, stderr } = await runCliProc([
+      "dual-run",
+      "--legacy",
+      `${baseUrl}/v1/parity/deals`,
+      "--modern",
+      `${baseUrl}/v2/parity/deals`,
+      "--timeout=0",
+    ]);
+    expect(exitCode).toBe(2);
+    expect(stderr).toContain("--timeout");
+  });
 });
