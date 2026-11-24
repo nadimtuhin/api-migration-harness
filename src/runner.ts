@@ -1,6 +1,21 @@
 import { diffJson } from "./diff.ts";
 import type { DualRunConfig, DualRunResult, EndpointResponse } from "./types.ts";
 
+// Response headers that can carry credentials or session tokens. Their values are
+// replaced before the response is stored, so they never reach text or --json reports.
+const SENSITIVE_RESPONSE_HEADERS = new Set([
+  "set-cookie",
+  "set-cookie2",
+  "authorization",
+  "proxy-authorization",
+  "cookie",
+  "x-api-key",
+  "x-auth-token",
+  "x-amz-security-token",
+]);
+
+export const REDACTED = "[REDACTED]";
+
 export async function executeEndpoint(
   url: string,
   options: {
@@ -15,10 +30,12 @@ export async function executeEndpoint(
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), timeoutMs);
 
-  const reqHeaders: Record<string, string> = {
-    Accept: "application/json, text/plain, */*",
-    ...options.headers,
-  };
+  const reqHeaders: Record<string, string> = { ...options.headers };
+  const hasHeader = (name: string) =>
+    Object.keys(reqHeaders).some((k) => k.toLowerCase() === name.toLowerCase());
+  if (!hasHeader("Accept")) {
+    reqHeaders["Accept"] = "application/json, text/plain, */*";
+  }
 
   let reqBody: string | undefined = undefined;
   if (options.body !== undefined && options.body !== null) {
@@ -26,7 +43,7 @@ export async function executeEndpoint(
       reqBody = options.body;
     } else {
       reqBody = JSON.stringify(options.body);
-      if (!reqHeaders["Content-Type"]) {
+      if (!hasHeader("Content-Type")) {
         reqHeaders["Content-Type"] = "application/json";
       }
     }
@@ -44,7 +61,8 @@ export async function executeEndpoint(
 
     const respHeaders: Record<string, string> = {};
     res.headers.forEach((value: string, key: string) => {
-      respHeaders[key.toLowerCase()] = value;
+      const name = key.toLowerCase();
+      respHeaders[name] = SENSITIVE_RESPONSE_HEADERS.has(name) ? REDACTED : value;
     });
 
     const rawText = await res.text();

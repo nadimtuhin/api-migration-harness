@@ -329,7 +329,7 @@ Run the test suite using Bun's native test runner:
 bun test
 ```
 
-All 30 unit, integration, and CLI e2e tests execute in under 400ms.
+CI also runs `bun run typecheck` and `bun run build`.
 
 ---
 

@@ -214,6 +214,24 @@ async function resolvePayload(input: unknown): Promise<unknown> {
   }
 }
 
+function parseNumberFlag(
+  flags: Record<string, string | boolean | string[]>,
+  name: string,
+  opts: { min: number; integer?: boolean; exclusiveMin?: boolean }
+): number | undefined {
+  const raw = flags[name];
+  if (raw === undefined) return undefined;
+  const str = Array.isArray(raw) ? raw[raw.length - 1] : String(raw);
+  const value = Number(str);
+  const tooSmall = opts.exclusiveMin ? value <= opts.min : value < opts.min;
+  if (str.trim() === "" || !Number.isFinite(value) || tooSmall || (opts.integer && !Number.isInteger(value))) {
+    const kind = opts.integer ? "an integer" : "a number";
+    const bound = `${opts.exclusiveMin ? ">" : ">="} ${opts.min}`;
+    throw new UsageError(`--${name} must be ${kind} ${bound} (got "${str}")`);
+  }
+  return value;
+}
+
 function parseHeaders(headersFlag: unknown): Record<string, string> {
   const headers: Record<string, string> = {};
   if (!headersFlag) return headers;
@@ -344,7 +362,7 @@ export async function runCli(args: string[]): Promise<number> {
         const ignore = parsed.flags["ignore"]
           ? String(parsed.flags["ignore"]).split(",").map((s) => s.trim())
           : undefined;
-        const timeoutMs = parsed.flags["timeout"] ? Number(parsed.flags["timeout"]) : undefined;
+        const timeoutMs = parseNumberFlag(parsed.flags, "timeout", { min: 0, exclusiveMin: true });
 
         const result = await dualRun({
           legacyUrl,
@@ -385,9 +403,7 @@ export async function runCli(args: string[]): Promise<number> {
         const ignore = parsed.flags["ignore"]
           ? String(parsed.flags["ignore"]).split(",").map((s) => s.trim())
           : undefined;
-        const numericTolerance = parsed.flags["tolerance"]
-          ? Number(parsed.flags["tolerance"])
-          : undefined;
+        const numericTolerance = parseNumberFlag(parsed.flags, "tolerance", { min: 0 });
 
         const result = diffJson(legacyObj, modernObj, {
           ignorePaths: ignore,
@@ -418,7 +434,7 @@ export async function runCli(args: string[]): Promise<number> {
         const key = parsed.flags["key"] ? String(parsed.flags["key"]) : undefined;
         const keyHeader = parsed.flags["key-header"] ? String(parsed.flags["key-header"]) : undefined;
         const headers = parseHeaders(parsed.flags["header"]);
-        const repeat = parsed.flags["repeat"] ? Number(parsed.flags["repeat"]) : 2;
+        const repeat = parseNumberFlag(parsed.flags, "repeat", { min: 1, integer: true }) ?? 2;
         const probe = parsed.flags["probe"] ? String(parsed.flags["probe"]) : undefined;
         const ignore = parsed.flags["ignore"]
           ? String(parsed.flags["ignore"]).split(",").map((s) => s.trim())
@@ -453,7 +469,7 @@ export async function runCli(args: string[]): Promise<number> {
       }
 
       case "mock": {
-        const port = Number(parsed.flags["port"] || 4000);
+        const port = parseNumberFlag(parsed.flags, "port", { min: 0, integer: true }) ?? 4000;
         const server = createMockServer(port);
         console.log(`CRM Mock API running at ${server.url}`);
         console.log("Press Ctrl+C to terminate.");

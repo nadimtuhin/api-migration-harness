@@ -29,6 +29,13 @@ async function probeItemCount(url: string, headers?: Record<string, string>): Pr
   return undefined;
 }
 
+// True when the leaf key of a diff path names a record identifier
+// (e.g. "id", "deal_id", "dealId", "$[0].uuid"), not merely contains "id" ("paid_at", "video_url").
+function isIdentifierPath(path: string): boolean {
+  const leaf = (path.split(".").pop() ?? "").replace(/\[\d+\]$/g, "");
+  return /^(id|uuid|guid)$/i.test(leaf) || /_id$/i.test(leaf) || /[a-z0-9]Id$/.test(leaf);
+}
+
 export async function testIdempotency(
   config: IdempotencyConfig
 ): Promise<IdempotencyResult> {
@@ -113,11 +120,7 @@ export async function testIdempotency(
   // e.g. if the initial body has a different ID or record count from second run
   if (
     !doubleWriteDetected &&
-    allDifferences.some(
-      (d) =>
-        (d.path.includes("id") || d.path.includes("deal_id") || d.path.includes("_id")) &&
-        d.kind === "VALUE_MISMATCH"
-    )
+    allDifferences.some((d) => d.kind === "VALUE_MISMATCH" && isIdentifierPath(d.path))
   ) {
     doubleWriteDetected = true;
   }
