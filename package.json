@@ -11,7 +11,9 @@
   "scripts": {
     "test": "bun test",
     "mock": "bun run mock/server.ts",
-    "cli": "bun run src/cli.ts"
+    "cli": "bun run src/cli.ts",
+    "typecheck": "tsc --noEmit -p .",
+    "build": "bun build src/cli.ts src/index.ts --target bun --outdir dist"
   },
   "keywords": [
     "api-migration",
@@ -25,6 +27,7 @@
   "author": "Nadim Tuhin",
   "license": "MIT",
   "devDependencies": {
-    "@types/bun": "latest"
+    "@types/bun": "latest",
+    "typescript": "~5.9.3"
   }
 }
